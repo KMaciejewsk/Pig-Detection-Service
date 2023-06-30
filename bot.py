@@ -18,57 +18,97 @@ async def on_ready():
         print(f"id: {guild.id} name: {guild.name}")
         guild_count = guild_count + 1
     print("Pig Detector is on " + str(guild_count) + " servers.")
-    # add lowbob to the list (see $list comamnd)
-    f = open('list.txt', 'w')
-    f.write('T-oE_RV_1PEQH8eDwe3Lq5hFqyyOOj-F9BCwU-5ra5Sylmq1Ka-gWEuTRZQ4dYHUx0cmN240NEO8YA: Jacektocwel\n')
-    f.close()
 
 @bot.command()
 async def commands(ctx):
     await ctx.send('$pigs <summoner name> - detects all pigs in live game\n'
                    '$stats <summoner name> <games ago (optional)> - shows most important stats from last game\n'
-                   '$list <summoner name (optional)> - adds summoner to list or shows list if no arguments\n')
+                   '$list - shows list of known inters\n'
+                   '$list add <summoner name> - adds summoner to list\n'
+                   '$list del <summoner name> - deletes summoner from list\n')
 
 @bot.command()
-async def list(ctx, arg1=None):
+async def list(ctx, delete=None, arg1=None):
     # if no arguments, print list
-    if arg1 is None:
+    if arg1 is None and delete is None:
         f = open('list.txt', 'r')
-        response = f.readlines()
-        response1 = ''
+        lines = f.readlines()
+        response = ''
         f.close()
-        for line in response:
+        for line in lines:
             words = line.split(' ')
-            if len(words) > 1:  # Check if there is a second word
+            if len(words) > 1:
                 second_word = words[1]
-                response1 += second_word
-        await ctx.send(response1)
+                response += second_word
+        if lines == []:
+            response = 'list is empty'
+        await ctx.send(response)
         return
 
-    # find summoner
-    try:
-        player = arg1
-        player_puuid = watcher.summoner.by_name(my_region, player)
-    except:
-        print('/list error: no summoner found')
-        await ctx.send('no summoner found')
+    # if delete argument, check if summoner name is given
+    if delete == 'del' and arg1 is None:
+        await ctx.send('delete who?')
         return
-    # find if player is already on list
-    f = open('list.txt', 'r')
-    f.seek(0)
-    for line in f:
-        if player_puuid['puuid'] in line:
-            response = 'player is already on list \n'
-            f.close()
-            await ctx.send(response)
+
+    # if add argument, check if summoner name is given
+    if delete == 'add' and arg1 is None:
+        await ctx.send('add who?')
+        return
+
+    # if delete argument, delete player from list
+    if delete == 'del' and arg1 is not None:
+        # find summoner
+        try:
+            player = arg1
+            player_puuid = watcher.summoner.by_name(my_region, player)
+        except:
+            print('/list error: no summoner found')
+            await ctx.send('no summoner found')
             return
-    f.close()
-    # add player to list
-    f = open('list.txt', 'a')
-    f.write(player_puuid['puuid'] + ': ' + arg1 + '\n')
-    response = 'player added to list: ' + arg1 + '\n'
-    f.close()
-    await ctx.send(response)
+        # delete player from list
+        f = open('list.txt', 'r')
+        lines = f.readlines()
+        f.close()
+        f = open('list.txt', 'w')
+        response = 'player not on the list \n'
+        for line in lines:
+            if player_puuid['puuid'] not in line:
+                f.write(line)
+            else:
+                response = 'player deleted from list: ' + arg1 + '\n'
+        f.close()
+        await ctx.send(response)
+        return
+
+    # if add argument, add player to list
+    if delete == 'add' and arg1 is not None:
+        # find summoner
+        try:
+            player = arg1
+            player_puuid = watcher.summoner.by_name(my_region, player)
+        except:
+            print('/list error: no summoner found')
+            await ctx.send('no summoner found')
+            return
+        # find if player is already on list
+        f = open('list.txt', 'r')
+        f.seek(0)
+        for line in f:
+            if player_puuid['puuid'] in line:
+                response = 'player is already on list \n'
+                f.close()
+                await ctx.send(response)
+                return
+        f.close()
+        # add player to list
+        f = open('list.txt', 'a')
+        f.write(player_puuid['puuid'] + ': ' + arg1 + '\n')
+        response = 'player added to list: ' + arg1 + '\n'
+        f.close()
+        await ctx.send(response)
+        return
+
+    await ctx.send('invalid command')
 
 @bot.command()
 async def pigs(ctx, arg):
