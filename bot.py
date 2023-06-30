@@ -8,7 +8,7 @@ watcher = LolWatcher(api_key)
 my_region = 'eun1'
 
 # bot = discord.Client(intents=discord.Intents.all())
-bot = commands.Bot(command_prefix='/', intents=discord.Intents.all())
+bot = commands.Bot(command_prefix='$', intents=discord.Intents.all())
 
 @bot.event
 async def on_ready():
@@ -18,10 +18,57 @@ async def on_ready():
         print(f"id: {guild.id} name: {guild.name}")
         guild_count = guild_count + 1
     print("Pig Detector is on " + str(guild_count) + " servers.")
+    # add lowbob to the list (see $list comamnd)
+    f = open('list.txt', 'w')
+    f.write('T-oE_RV_1PEQH8eDwe3Lq5hFqyyOOj-F9BCwU-5ra5Sylmq1Ka-gWEuTRZQ4dYHUx0cmN240NEO8YA: Jacektocwel\n')
+    f.close()
 
 @bot.command()
 async def commands(ctx):
-    await ctx.send('/pigs <summoner name> - detects all pigs in live game\n/stats <summoner name> <games ago (optional)> - shows most important stats from last game')
+    await ctx.send('$pigs <summoner name> - detects all pigs in live game\n'
+                   '$stats <summoner name> <games ago (optional)> - shows most important stats from last game\n'
+                   '$list <summoner name (optional)> - adds summoner to list or shows list if no arguments\n')
+
+@bot.command()
+async def list(ctx, arg1=None):
+    # if no arguments, print list
+    if arg1 is None:
+        f = open('list.txt', 'r')
+        response = f.readlines()
+        response1 = ''
+        f.close()
+        for line in response:
+            words = line.split(' ')
+            if len(words) > 1:  # Check if there is a second word
+                second_word = words[1]
+                response1 += second_word
+        await ctx.send(response1)
+        return
+
+    # find summoner
+    try:
+        player = arg1
+        player_puuid = watcher.summoner.by_name(my_region, player)
+    except:
+        print('/list error: no summoner found')
+        await ctx.send('no summoner found')
+        return
+    # find if player is already on list
+    f = open('list.txt', 'r')
+    f.seek(0)
+    for line in f:
+        if player_puuid['puuid'] in line:
+            response = 'player is already on list \n'
+            f.close()
+            await ctx.send(response)
+            return
+    f.close()
+    # add player to list
+    f = open('list.txt', 'a')
+    f.write(player_puuid['puuid'] + ': ' + arg1 + '\n')
+    response = 'player added to list: ' + arg1 + '\n'
+    f.close()
+    await ctx.send(response)
 
 @bot.command()
 async def pigs(ctx, arg):
