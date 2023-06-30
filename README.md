@@ -1,4 +1,8 @@
 # Pig-Detection-Service
 Discord bot connected to Riot API
-## commands:
-* /pigs [ign] marks teammates with win rate (in last solo/duo matches) below 50%
+## how to run:
+* Set up a discord bot
+* insert Riot API key in line 6
+* insert bot token in last line
+* run bot.py
+* try /commands for all available features
