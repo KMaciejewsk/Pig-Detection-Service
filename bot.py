@@ -1,4 +1,5 @@
 import discord
+import asyncio
 from discord.ext import commands
 from riotwatcher import LolWatcher, ApiError
 
@@ -12,7 +13,7 @@ bot = commands.Bot(command_prefix='$', intents=discord.Intents.all())
 
 @bot.event
 async def on_ready():
-    # print names ans ids of all servers bot is connected to
+    # print names and ids of all servers bot is connected to
     guild_count = 0
     for guild in bot.guilds:
         print(f"id: {guild.id} name: {guild.name}")
@@ -22,7 +23,8 @@ async def on_ready():
 @bot.command()
 async def commands(ctx):
     await ctx.send('$pigs <summoner name> - detects all pigs in live game\n'
-                   '$stats <summoner name> <games ago (optional)> - shows most important stats from last game\n'
+                   '$stats <summoner name> - shows most important stats from last game\n'
+                   '$stats <summoner name> <games ago> - shows most important stats from x games ago\n'
                    '$list - shows list of known inters\n'
                    '$list add <summoner name> - adds summoner to list\n'
                    '$list del <summoner name> - deletes summoner from list\n')
@@ -147,9 +149,17 @@ async def pigs(ctx, arg):
                 arams = 0
                 tft = 0
                 i = 0
-                while (wins+losses < 10):
-                    match = player_matches[i]
-                    match_detail = watcher.match.by_id(my_region, match)
+                search_limit = 20
+                while (wins+losses < 10 and i < search_limit):
+                    # sometimes match history is empty
+                    try:
+                        match = player_matches[i]
+                        match_detail = watcher.match.by_id(my_region, match)
+                    except:
+                        # if match history is empty, multiply wins and losses to end loop
+                        wins *= 10
+                        losses *= 10
+                        print('/pigs error: failed to find game to analyze')
                     # check if match is aram
                     if match_detail['info']['queueId'] == 450:
                         arams += 1
@@ -168,17 +178,19 @@ async def pigs(ctx, arg):
                 print('wins: ', wins, 'losses: ', losses)
                 print('arams: ', arams, 'tft: ', tft)
                 # detect all lowbobs
-                if(wins/(wins+losses) < 0.5):
-                    response += 'pig '
-                elif (player == 'Jacektocwel'):
+                if(wins/(wins+losses) < 0.5 and wins+losses > 0):
+                    response += 'pig'
+                elif(wins+losses == 0):
+                    response += 'first game'
+                elif (player == 'Jacektocwel'): # VERY important line
                     response += 'pig (as per usual)'
                 else:
                     response += 'not a pig '
                 # detect all aram/tft players
                 if(arams > 0):
-                    response += 'aram enjoyer '
+                    response += ', aram enjoyer'
                 if(tft > 0):
-                    response += 'tft player (ewwww)'
+                    response += ', tft player (ewwww)'
                 response += '\n'
     except:
         print('/pigs error: ERORR')
